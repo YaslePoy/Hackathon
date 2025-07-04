@@ -1,6 +1,6 @@
 @page "/register"
 @rendermode InteractiveServer
-@using HackathonApi.Models
+@using System.Net.Http.Json
 
 <style>
     body{
@@ -38,12 +38,48 @@
     <a href="/auth" class="pad10">Уже есть аккаунт? Войти</a>
 </div>
 
-@code
-{
+@code {
     public string alert;
-    public User user = new(); 
-    public void HandleRegister()
+    public UserCreateDTO user = new();
+
+    [Inject]
+    public HttpClient Http { get; set; }
+    [Inject]
+    public NavigationManager Nav { get; set; }
+
+    public async Task HandleRegister()
     {
-        alert = "tesetrsers";
+        alert = string.Empty;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/user", user);
+            if (response.IsSuccessStatusCode)
+            {
+                alert = "Регистрация успешна! Теперь вы можете войти.";
+                await Task.Delay(1000);
+                Nav.NavigateTo("/auth");
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                alert = "Пользователь с такой почтой уже существует.";
+            }
+            else
+            {
+                alert = $"Ошибка регистрации: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            alert = $"Ошибка: {ex.Message}";
+        }
+    }
+
+    public class UserCreateDTO
+    {
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public int Role { get; set; } = 0;
+        public string Surname { get; set; }
+        public string Password { get; set; }
     }
 }

@@ -27,11 +27,7 @@ public static class Utils
             var curr = entityProps.FirstOrDefault(i => i.Name == property.Name);
             if (curr == null)
                 continue;
-
-            if (curr.Name == "Id")
-            {
-                continue;
-            }
+            
             curr.SetValue(to, value);
         }
 

@@ -14,6 +14,9 @@ public class Program
             .AddInteractiveServerComponents();
         builder.Services.AddFluxor(o => o
             .ScanAssemblies(typeof(Program).Assembly));
+        builder.Services.AddSingleton(sp => new HttpClient {
+            BaseAddress = new Uri("http://localhost:5154")
+        });
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.

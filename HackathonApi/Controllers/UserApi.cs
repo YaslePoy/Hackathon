@@ -44,4 +44,14 @@ public class UserApi(HckContext db) : Controller
         await db.SaveChangesAsync();
         return Ok(dbuser.Id);
     }
+
+    [HttpGet("{userId}/teams")]
+    public async Task<ActionResult<IReadOnlyList<Team>>> GetUserTeams(int userId)
+    {
+        var teams = await db.TeamMembers
+            .Where(tm => tm.UserId == userId)
+            .Select(tm => tm.Team)
+            .ToListAsync();
+        return Ok(teams);
+    }
 }

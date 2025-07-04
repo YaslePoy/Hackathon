@@ -1,0 +1,55 @@
+@page "/hackathon/{HackathonId:int}/team/{TeamId:int}"
+@using System.Net.Http.Json
+@using HackathonApi.Models
+@inject HttpClient Http
+
+<h2>Информация о хакатоне</h2>
+@if (hackathon == null)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <div class="card" style="max-width:600px;">
+        <div class="card-body">
+            <h4 class="card-title">@hackathon.Name</h4>
+            <h6 class="card-subtitle mb-2 text-muted">@hackathon.Description</h6>
+            <p class="card-text">
+                <b>Дата начала:</b> @hackathon.Start.ToShortDateString()<br />
+                <b>Дата окончания:</b> @hackathon.End.ToShortDateString()<br />
+                <b>Организатор:</b>
+                @if (hackathon.Owner != null)
+                {
+                    <span>@hackathon.Owner.Name @hackathon.Owner.Surname (@hackathon.Owner.Email)</span>
+                }
+                else
+                {
+                    <span>Неизвестно</span>
+                }
+            </p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int HackathonId { get; set; }
+    [Parameter]
+    public int TeamId { get; set; }
+
+    private Hackathon hackathon;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHackathon();
+    }
+
+    private async Task LoadHackathon()
+    {
+        try
+        {
+            hackathon = await Http.GetFromJsonAsync<Hackathon>($"/api/hackathon/{HackathonId}");
+        }
+        catch { hackathon = null; }
+    }
+} 

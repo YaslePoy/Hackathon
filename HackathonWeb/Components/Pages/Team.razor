@@ -1,0 +1,145 @@
+@page "/team/{TeamId:int}"
+@using System.Net.Http.Json
+@using HackathonApi.DTO
+@using HackathonApi.Models
+@inject HttpClient Http
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+<h2>Команда: @teamName</h2>
+
+<h4>Участники</h4>
+@if (teammates == null)
+{
+    <p>Загрузка...</p>
+}
+else if (teammates.Count == 0)
+{
+    <p>В команде нет участников.</p>
+}
+else
+{
+    <ul class="list-group mb-3" style="max-width:400px;">
+        @foreach (var user in teammates)
+        {
+            <li class="list-group-item">@user.Name @user.Surname (@user.Email)</li>
+        }
+    </ul>
+}
+
+<h4>Хакатоны, в которых участвует команда</h4>
+@if (hackathons == null)
+{
+    <p>Загрузка...</p>
+}
+else if (hackathons.Count == 0)
+{
+    <p>Команда не зарегистрирована ни на одном хакатоне.</p>
+}
+else
+{
+    <ul class="list-group mb-3" style="max-width:400px;">
+        @foreach (var hack in hackathons)
+        {
+            <li class="list-group-item" style="cursor:pointer;" @onclick="() => GoToHackathon(hack.Id)">@hack.Name (@hack.Description)</li>
+        }
+    </ul>
+}
+
+<h4>Зарегистрировать команду на хакатон</h4>
+@if (allHackathons == null)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <ul class="list-group mb-3" style="max-width:400px;">
+        @foreach (var hack in allHackathons)
+        {
+            bool alreadyRegistered = hackathons.Any(h => h.Id == hack.Id);
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@hack.Name (@hack.Description)</span>
+                @if (alreadyRegistered)
+                {
+                    <span class="badge bg-success">Уже участвует</span>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-primary" @onclick="() => RegisterOnHackathon(hack.Id)">Зарегистрировать</button>
+                }
+            </li>
+        }
+    </ul>
+}
+<p class="text-info">@registerResult</p>
+
+@code {
+    [Parameter]
+    public int TeamId { get; set; }
+    private string teamName;
+    private List<UserDTO> teammates;
+    private List<Hackathon> hackathons;
+    private List<Hackathon> allHackathons;
+    private string registerResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTeamInfo();
+        await LoadAllHackathons();
+    }
+
+    private async Task LoadTeamInfo()
+    {
+        try
+        {
+            teammates = await Http.GetFromJsonAsync<List<UserDTO>>($"/api/team/{TeamId}/teammates");
+        }
+        catch { teammates = new List<UserDTO>(); }
+        try
+        {
+            hackathons = await Http.GetFromJsonAsync<List<Hackathon>>($"/api/team/{TeamId}/hackathons");
+        }
+        catch { hackathons = new List<Hackathon>(); }
+        // Получить имя команды (можно из teammates, либо отдельным запросом)
+        try
+        {
+            var team = await Http.GetFromJsonAsync<HackathonApi.Models.Team>($"/api/team/{TeamId}");
+            teamName = team?.Name ?? $"ID {TeamId}";
+        }
+        catch { teamName = $"ID {TeamId}"; }
+        StateHasChanged();
+    }
+    
+    private async Task LoadAllHackathons()
+    {
+        try
+        {
+            allHackathons = await Http.GetFromJsonAsync<List<Hackathon>>("/api/hackathon/all");
+        }
+        catch { allHackathons = new List<Hackathon>(); }
+    }
+
+    private async Task RegisterOnHackathon(int hackathonId)
+    {
+        registerResult = string.Empty;
+        var response = await Http.PostAsync($"/api/team/{TeamId}/register/{hackathonId}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            registerResult = "Команда успешно зарегистрирована на хакатон!";
+            await LoadTeamInfo();
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            registerResult = "Команда уже зарегистрирована на этот хакатон.";
+        }
+        else
+        {
+            registerResult = $"Ошибка: {response.StatusCode}";
+        }
+        StateHasChanged();
+    }
+
+    private void GoToHackathon(int hackathonId)
+    {
+        Nav.NavigateTo($"/hackathon/{hackathonId}/team/{TeamId}");
+    }
+} 

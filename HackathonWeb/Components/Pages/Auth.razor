@@ -7,7 +7,7 @@
 <Fluxor.Blazor.Web.StoreInitializer/>
 <style>
     body {
-        width: 20%;
+        width: 500px;
     }
 
     img {
@@ -44,18 +44,40 @@
 
 
 @code {
-    private string login;
+    private string login = "mmm606@inboxx.ru";
     private string password;
     private string error;
 
     [Inject]
     public NavigationManager Nav { get; set; }
+    [Inject]
+    public HttpClient Http { get; set; }
 
-    private void HandleLogin()
+    private async Task HandleLogin()
     {
-        var user = new User { Email = login, Password = password, Id = 0, Name = "test", Surname = "test" };
-        fluxor.Dispatch(new SetupUserAction(user, ""));
-        Nav.NavigateTo("/");
+        error = null;
+        try
+        {
+            var response = await Http.GetAsync($"/api/user/auth?username={Uri.EscapeDataString(login)}&password={Uri.EscapeDataString(password)}");
+            if (response.IsSuccessStatusCode)
+            {
+                var user = await response.Content.ReadFromJsonAsync<User>();
+                fluxor.Dispatch(new SetupUserAction(user, ""));
+                Nav.NavigateTo("/");
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                error = "Неверная почта или пароль.";
+            }
+            else
+            {
+                error = $"Ошибка авторизации: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Ошибка: {ex.Message}";
+        }
     }
 
 }

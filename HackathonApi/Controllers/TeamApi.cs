@@ -9,6 +9,11 @@ namespace HackathonApi.Controllers;
 [Route("api/team")]
 public class TeamApi(HckContext db) : Controller
 {
+    [HttpGet]
+    public async Task<ActionResult<List<Team>>> GetAllTeams()
+    {
+        return await db.Teams.ToListAsync();
+    }
     [HttpPost]
     public async Task<ActionResult> CreateTeam([FromBody] Team team)
     {
@@ -40,6 +45,15 @@ public class TeamApi(HckContext db) : Controller
             return NotFound();
         var users = db.TeamMembers.Where(i => i.TeamId == teamId).Include(i => i.User).Select(i => i.User).ToList()
             .Select(i => i.To<UserDTO>());
+        return Ok(users);
+    }
+    [HttpGet("{teamId}/hackathons")]
+    public async Task<ActionResult<IReadOnlyList<HackathonDTO>>> Hackathons(int teamId)
+    {
+        if (!await db.TeamCompetitions.AnyAsync(i => i.TeamId == teamId))
+            return NotFound();
+        var users = db.TeamCompetitions.Where(i => i.TeamId == teamId).Select(i => i.Hackathon).ToList()
+            .Select(i => i.To<HackathonDTO>());
         return Ok(users);
     }
 

@@ -1,0 +1,217 @@
+@page "/participant"
+@using Fluxor
+@inject HttpClient Http
+@inject IState<HackState> State
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+<Fluxor.Blazor.Web.StoreInitializer/>
+
+<h3>Ваши команды</h3>
+@if (teams == null)
+{
+    <p>Загрузка...</p>
+}
+else if (teams.Count == 0)
+{
+    <p>Вы не состоите ни в одной команде.</p>
+}
+else
+{
+    <ul class="list-group mb-3" style="max-width:400px;">
+        @foreach (var team in teams)
+        {
+            <li class="list-group-item" style="cursor:pointer;" @onclick="() => GoToTeam(team.Id)">@team.Name</li>
+        }
+    </ul>
+}
+
+<h3>Подать заявку в команду</h3>
+<div class="form-group mb-2" style="max-width:400px;">
+    <select class="form-select" @onchange="OnTeamDropdownChanged">
+        <option value="">Выберите команду...</option>
+        @if (allTeams != null)
+        {
+            foreach (var team in allTeams)
+            {
+                <option value="@team.Id">@team.Name</option>
+            }
+        }
+    </select>
+    <button @onclick="SendJoinRequest" class="btn btn-primary">Отправить заявку</button>
+
+</div>
+
+<p class="text-info">@requestResult</p>
+
+<h3>Создать команду</h3>
+<div class="form-group mb-2">
+    <input type="text" class="form-control mb-2" @bind="newTeamName" placeholder="Название команды"/>
+    <input type="text" class="form-control mb-2" @bind="newTeamDescription" placeholder="Описание"/>
+    <button @onclick="CreateTeam" class="btn btn-success">Создать</button>
+</div>
+<p class="text-info">@createTeamResult</p>
+
+
+
+@code {
+    private List<Team> teams;
+    private int requestTeamId;
+    private string requestResult;
+    private string newTeamName;
+    private string newTeamDescription;
+    private string createTeamResult;
+    private string searchQuery;
+    private List<Team> searchResults = new();
+    private System.Timers.Timer searchDebounceTimer;
+    private List<Team> allTeams;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            await Init();
+        }
+    }
+
+    async Task Init()
+    {
+        var user = State.Value.User;
+        if (user != null)
+        {
+            try
+            {
+                teams = await Http.GetFromJsonAsync<List<Team>>($"/api/user/{user.Id}/teams");
+                allTeams = await Http.GetFromJsonAsync<List<Team>>($"/api/team");
+                var tids = teams.Select(i => i.Id).ToList();
+                allTeams = allTeams.Where(i => !tids.Contains(i.Id)).ToList();
+                StateHasChanged();
+            }
+            catch
+            {
+                teams = new List<Team>();
+                allTeams = new List<Team>();
+            }
+        }
+        else
+        {
+            teams = new List<Team>();
+            allTeams = new List<Team>();
+        }
+    }
+
+    private async Task SendJoinRequest()
+    {
+        var user = State.Value.User;
+        if (user == null || requestTeamId <= 0)
+        {
+            requestResult = "Ошибка: укажите корректный ID команды.";
+            return;
+        }
+
+        var response = await Http.PostAsync($"/api/team/request?userId={user.Id}&teamId={requestTeamId}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            requestResult = "Заявка отправлена!";
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            requestResult = "Команда не найдена.";
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            requestResult = "Заявка уже существует или вы уже в команде.";
+        }
+        else
+        {
+            requestResult = $"Ошибка: {response.StatusCode}";
+        }
+    }
+
+    private async Task CreateTeam()
+    {
+        var user = State.Value.User;
+        if (user == null || string.IsNullOrWhiteSpace(newTeamName))
+        {
+            createTeamResult = "Введите название команды.";
+            return;
+        }
+
+        var team = new Team { Name = newTeamName, Description = newTeamDescription };
+        var response = await Http.PostAsJsonAsync("/api/team", team);
+        if (response.IsSuccessStatusCode)
+        {
+            createTeamResult = "Команда создана!";
+            newTeamName = string.Empty;
+            newTeamDescription = string.Empty;
+            teams.Add(team);
+            StateHasChanged();
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            createTeamResult = "Команда с таким названием уже существует.";
+        }
+        else
+        {
+            createTeamResult = $"Ошибка: {response.StatusCode}";
+        }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchDebounceTimer?.Stop();
+        searchDebounceTimer = new System.Timers.Timer(300) { AutoReset = false };
+        searchDebounceTimer.Elapsed += async (_, __) => await SearchTeams();
+        searchDebounceTimer.Start();
+    }
+
+    private async Task SearchTeams()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            searchResults = new List<Team>();
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            var results = await Http.GetFromJsonAsync<List<Team>>($"/api/team/search?name={Uri.EscapeDataString(searchQuery)}");
+            searchResults = results ?? new List<Team>();
+        }
+        catch
+        {
+            searchResults = new List<Team>();
+        }
+
+        StateHasChanged();
+    }
+
+    private void SelectTeam(Team team)
+    {
+        requestTeamId = team.Id;
+        searchQuery = team.Name;
+        searchResults = new List<Team>();
+    }
+
+    private void OnTeamDropdownChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            requestTeamId = id;
+        }
+    }
+
+    private void GoToTeam(int teamId)
+    {
+        Nav.NavigateTo($"/team/{teamId}");
+    }
+
+    public class Team
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+    }
+
+} 

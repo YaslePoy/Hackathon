@@ -1,4 +1,98 @@
 @page "/admin"
-@using HackathonWeb.Components.Layout
+@using System.Net.Http.Json
+@using HackathonApi.Models
+@inject HttpClient Http
+@inject NavigationManager Nav
 
-<UserBar></UserBar>
+<h2>Управление хакатонами</h2>
+
+<h4>Выбрать хакатон для редактирования</h4>
+@if (hackathons == null)
+{
+    <p>Загрузка...</p>
+}
+else if (hackathons.Count == 0)
+{
+    <p>Нет хакатонов.</p>
+}
+else
+{
+    <div class="form-group mb-3" style="max-width:600px;">
+        <select class="form-select" @onchange="OnHackathonSelected">
+            <option value="">Выберите хакатон...</option>
+            @foreach (var hack in hackathons)
+            {
+                <option value="@hack.Id">@hack.Name (@hack.Start.ToShortDateString() - @hack.End.ToShortDateString())</option>
+            }
+        </select>
+        <button class="btn btn-primary mt-2" @onclick="GoToEdit" disabled="@(selectedHackathonId == 0)">Редактировать выбранный</button>
+    </div>
+}
+
+<h4>Создать новый хакатон</h4>
+<div class="form-group mb-2" style="max-width:600px;">
+    <input type="text" class="form-control mb-2" @bind="newHackathon.Name" placeholder="Название" />
+    <input type="text" class="form-control mb-2" @bind="newHackathon.Description" placeholder="Описание" />
+    <input type="date" class="form-control mb-2" @bind-value="@startDate" />
+    <input type="date" class="form-control mb-2" @bind-value="@endDate" />
+    <button class="btn btn-success me-2" @onclick="CreateHackathon">Создать</button>
+</div>
+<p class="text-info">@resultMsg</p>
+
+@code {
+    private List<Hackathon> hackathons;
+    private Hackathon newHackathon = new();
+    private string resultMsg;
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private int selectedHackathonId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHackathons();
+    }
+
+    private async Task LoadHackathons()
+    {
+        try
+        {
+            hackathons = await Http.GetFromJsonAsync<List<Hackathon>>("/api/hackathon/all");
+        }
+        catch { hackathons = new List<Hackathon>(); }
+    }
+
+    private void OnHackathonSelected(ChangeEventArgs e)
+    {
+        int.TryParse(e.Value?.ToString(), out selectedHackathonId);
+    }
+
+    private void GoToEdit()
+    {
+        if (selectedHackathonId > 0)
+            Nav.NavigateTo($"/admin/hackathon/{selectedHackathonId}");
+    }
+
+    private async Task CreateHackathon()
+    {
+        if (string.IsNullOrWhiteSpace(newHackathon.Name) || string.IsNullOrWhiteSpace(newHackathon.Description) || startDate == null || endDate == null)
+        {
+            resultMsg = "Заполните все поля.";
+            return;
+        }
+        newHackathon.Start = startDate.Value;
+        newHackathon.End = endDate.Value;
+        var response = await Http.PostAsJsonAsync("/api/hackathon", newHackathon);
+        if (response.IsSuccessStatusCode)
+        {
+            resultMsg = "Хакатон создан!";
+            await LoadHackathons();
+            newHackathon = new Hackathon();
+            startDate = null;
+            endDate = null;
+        }
+        else
+        {
+            resultMsg = $"Ошибка: {response.StatusCode}";
+        }
+    }
+}

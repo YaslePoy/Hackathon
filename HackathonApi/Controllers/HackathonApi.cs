@@ -27,11 +27,11 @@ public class HackathonApi(HckContext db) : Controller
     }
 
     [HttpPost]
-    public async Task<ActionResult> Create([FromBody] Hackathon hackathon)
+    public async Task<ActionResult> Create([FromBody] HackathonDTO hackathon)
     {
         try
         {
-            await db.Hackathons.AddAsync(hackathon);
+            await db.Hackathons.AddAsync(hackathon.To<Hackathon>());
             await db.SaveChangesAsync();
             return Ok(hackathon.Id);
         }
@@ -42,7 +42,7 @@ public class HackathonApi(HckContext db) : Controller
     }
 
     [HttpPatch]
-    public async Task<ActionResult> Update([FromBody] Hackathon hackathon)
+    public async Task<ActionResult> Update([FromBody] HackathonDTO hackathon)
     {
         if (db.Hackathons.FirstOrDefaultAsync(i => i.Id == hackathon.Id) is { } hk)
         {
