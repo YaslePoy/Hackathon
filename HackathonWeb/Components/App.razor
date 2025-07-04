@@ -1,0 +1,45 @@
+﻿@using HackathonApi.Models
+<Fluxor.Blazor.Web.StoreInitializer/>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]"/>
+    <link rel="stylesheet" href="@Assets["app.css"]"/>
+    <link rel="stylesheet" href="@Assets["HackathonWeb.styles.css"]"/>
+    <ImportMap/>
+    <link rel="icon" type="image/png" href="favicon.png"/>
+    <HeadOutlet/>
+</head>
+
+<style>
+    html{
+        height: 100%;
+    }
+    body{
+        padding: 20px;
+        background: linear-gradient(0deg, #d2cdc6,#08a693,#3a4d5f,#272c3f);
+        height: 50%;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .post_page .post_page__content .text__block h2 {
+        font-size: 36px;
+        line-height: 1.3em;
+        font-weight: 600;
+        margin-bottom: 26px;
+    }
+</style>
+<body>
+<Routes/>
+<script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>
+@code{
+
+    public static User? User;
+}

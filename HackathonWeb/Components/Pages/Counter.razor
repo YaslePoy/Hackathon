@@ -1,0 +1,31 @@
+﻿@page "/counter"
+@rendermode InteractiveServer
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @login</p>
+
+<button class="btn btn-primary" @onclick="HandleLogin">Click me</button>
+
+@code {
+    private int currentCount = 0;
+
+    private string login;
+    private string password;
+    private string error;
+
+    [Inject]
+    public NavigationManager Nav { get; set; }
+
+    private void HandleLogin()
+    {
+        currentCount++;
+        //
+        // App.User = new User { Email = login, Password = password, Id = 0, Name = "test", Surname = "test" };
+        // StateHasChanged();
+        login = "test sdfasfawe";
+    }
+
+}

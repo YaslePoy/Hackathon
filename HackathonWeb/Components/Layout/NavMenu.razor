@@ -1,0 +1,42 @@
+﻿@using Fluxor
+@rendermode InteractiveServer
+@inject IState<HackState> state
+<Fluxor.Blazor.Web.StoreInitializer/>
+
+<header>
+    <nav>
+        <ul>
+            <li><a href="/" class="brand">Micial Hackathon</a></li>
+            @if (state.Value.User is null)
+            {
+                <li><a href="/auth">Войти</a></li>
+            }
+            else
+            {
+                <li><a href="/user">@state.Value.User.Name @state.Value.User.Surname</a></li>
+            }
+        </ul>
+    </nav>
+</header>
+
+@code
+{
+    [Inject]
+    NavigationManager Nav { get; set; }
+    public void GotoUser()
+    {
+        Nav.NavigateTo(@$"user/{App.User.Id}");
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+        if (!firstRender)
+            return;
+
+        state.StateChanged += (sender, args) =>
+        {
+            StateHasChanged();
+        };
+    }
+}

@@ -1,0 +1,62 @@
+@page "/auth"
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@rendermode InteractiveServer
+@using Fluxor
+@using HackathonApi.Models
+@inject IDispatcher fluxor
+<Fluxor.Blazor.Web.StoreInitializer/>
+<style>
+    body {
+        width: 30%;
+    }
+
+    img {
+        width: 100%;
+        height: auto;
+        border-radius: 20px;
+    }
+</style>
+
+<PageTitle>Micial Hackathon</PageTitle>
+
+<style>
+    .pad10 {
+        margin: 5px;
+    }
+</style>
+
+@if (error != null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+<div>
+    <div class="form-group">
+        <label for="login" class="pad10">Почта:</label>
+        <input type="text" class="form-control pad10" id="login" @bind-value="@login" required/>
+    </div>
+    <div class="form-group">
+        <label for="password" class="pad10">Пароль:</label>
+        <input type="password" class="form-control pad10" id="password" @bind-value="@password" required/>
+    </div>
+    <button @onclick="HandleLogin" class="btn btn-primary pad10">Login</button>
+    <a href="/register" class="pad10">Зарегистрироваться</a>
+</div>
+
+
+@code {
+    private string login;
+    private string password;
+    private string error;
+
+    [Inject]
+    public NavigationManager Nav { get; set; }
+
+    private void HandleLogin()
+    {
+        var user = new User { Email = login, Password = password, Id = 0, Name = "test", Surname = "test" };
+        fluxor.Dispatch(new SetupUserAction(user, ""));
+        Nav.NavigateTo("/");
+    }
+
+}
+

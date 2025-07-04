@@ -1,0 +1,78 @@
+﻿@inherits LayoutComponentBase
+<style>
+    nav {
+        margin-bottom: 32px;
+    }
+    
+    header {
+        text-align: center;
+        padding-top: 0px;
+        padding-bottom: 2rem;
+    }
+
+    nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    nav a.brand {
+        font-family: 'Space Grotesk', monospace;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #e94560;
+        text-decoration: none;
+    }
+
+    nav a.brand:hover {
+        color: #ff6b81;
+    }
+    nav a {
+        color: white;
+        text-decoration: none;
+        font-size: 1.1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        transition: background-color 0.3s;
+    }
+    footer {
+        text-align: center;
+        padding: 1rem 0;
+        margin-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    main {
+        padding: 2rem 0;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 2rem;
+        backdrop-filter: blur(5px);
+    }
+</style>
+<NavMenu></NavMenu>
+<div class="page">
+
+
+    <main>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+<footer>
+    <p>&copy; 2025 Моя страница. Все права защищены. <span id="random-emoji"></span></p>
+</footer>
+
+<script src="scripts.js"></script>
