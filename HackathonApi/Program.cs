@@ -12,6 +12,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<HckContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DBConnection")));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy",
+        bld => bld
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .SetIsOriginAllowed(_ => true)
+            .AllowAnyHeader());
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -21,6 +30,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthorization();
+app.UseCors("CorsPolicy");
 
 app.MapControllers();
 app.UseSwagger();
