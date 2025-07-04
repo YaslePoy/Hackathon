@@ -1,0 +1,22 @@
+@using Fluxor
+@inject IState<HackState> State
+@inject IDispatcher flixor
+<Fluxor.Blazor.Web.StoreInitializer/>
+
+<div style="display: flex; align-items: center; justify-content: space-between"><p>Привет, @State.Value.User?.Name @State.Value.User?.Name</p><a href="/" @onclick="LogOut">Выйти</a></div>
+
+@code
+{
+    public void LogOut()
+    {
+        flixor.Dispatch(new LogOutAction());
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            StateHasChanged();
+        }
+    }
+}

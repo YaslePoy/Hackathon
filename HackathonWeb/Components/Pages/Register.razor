@@ -1,0 +1,49 @@
+@page "/register"
+@rendermode InteractiveServer
+@using HackathonApi.Models
+
+<style>
+    body{
+        width: 30%;
+    }
+    .pad10 {
+        margin: 5px;
+    }
+    a{
+        text-decoration: none;
+        color: black;
+    }
+</style>
+
+<p>@alert</p>
+
+<div>
+    <div class="form-group">
+        <label for="name" class="pad10">Имя:</label>
+        <input type="text" class="form-control pad10" id="name" @bind-value="@user.Name" required />
+    </div>
+    <div class="form-group">
+        <label for="surname" class="pad10">Фамилия:</label>
+        <input type="text" class="form-control pad10" id="surname" @bind-value="@user.Surname" required />
+    </div>
+    <div class="form-group">
+        <label for="email" class="pad10">Почта:</label>
+        <input type="text" class="form-control pad10" id="email" @bind-value="@user.Email" required />
+    </div>
+    <div class="form-group">
+        <label for="password" class="pad10">Пароль:</label>
+        <input type="password" class="form-control pad10" id="password" @bind-value="@user.Password" required />
+    </div>
+    <button @onclick="HandleRegister" class="btn btn-primary pad10">Зарегистрироваться</button>
+    <a href="/auth" class="pad10">Уже есть аккаунт? Войти</a>
+</div>
+
+@code
+{
+    public string alert;
+    public User user = new(); 
+    public void HandleRegister()
+    {
+        alert = "tesetrsers";
+    }
+}

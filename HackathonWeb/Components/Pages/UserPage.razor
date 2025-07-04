@@ -1,0 +1,42 @@
+@page "/user"
+@using Fluxor
+@rendermode InteractiveServer
+<Fluxor.Blazor.Web.StoreInitializer/>
+@inject IState<HackState> State
+@inject NavigationManager Nav
+<style>
+    body{
+        width:60%;
+    }
+</style>
+@if (State.Value.User is not null)
+{
+    @if (State.Value.User.Role == 1)
+    {
+        <Admin></Admin>
+    }else if (State.Value.User.Role == 1)
+    {
+        <Admin></Admin>
+    }
+    else
+    {
+        <Admin></Admin>
+    }
+}
+
+@code{
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+        if (firstRender)
+        {
+            if (State.Value.User is null)
+            {
+                Nav.NavigateTo("/auth");
+            }
+        }
+    }
+
+}
+
