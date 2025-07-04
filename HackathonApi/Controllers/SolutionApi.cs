@@ -1,3 +1,4 @@
+using HackathonApi.DTO;
 using HackathonApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,34 +17,28 @@ public class SolutionApi(HckContext db) : Controller
     }
 
     [HttpGet]
-    public async Task<ActionResult<HSolution?>> Get(int taskId, int teamId)
+    public async Task<ActionResult<SolutionDTO?>> Get(int taskId, int teamId)
     {
-        return await db.Solutions.FirstOrDefaultAsync(i => i.TaskId == taskId && i.TeamId == teamId);
+        
+        return Ok((await db.Solutions.FirstOrDefaultAsync(i => i.TaskId == taskId && i.TeamId == teamId)).Text);
     }
-    [HttpPost]
-    public async Task<ActionResult> Post([FromBody] HSolution solution)
-    {
-        var existing = await db.Solutions.FirstOrDefaultAsync(i => i.Id == solution.Id);
-        if (existing is null)
-        {
-            if (await db.Solutions.FirstOrDefaultAsync(i => i.TaskId == solution.TaskId && i.TeamId == solution.TeamId)
-                is
-                { } dbSol)
-            {
-                Utils.TransferData(dbSol, solution);
-                await db.SaveChangesAsync();
-                return Ok();
-            }
 
-            db.Solutions.Add(solution);
+    [HttpPost]
+    public async Task<ActionResult> Post([FromBody] SolutionDTO solution)
+    {
+        if (await db.Solutions.FirstOrDefaultAsync(i => i.TaskId == solution.TaskId && i.TeamId == solution.TeamId)
+            is
+            { } dbSol)
+        {
+            Utils.TransferData(dbSol, solution);
             await db.SaveChangesAsync();
-            return Ok(solution.Id);
+            return Ok();
         }
 
-        Utils.TransferData(existing, solution);
+        var dbsol = new HSolution { Text = solution.Text, TeamId = solution.TeamId, TaskId = solution.TaskId, Comment = ""};
+        db.Solutions.Add(dbsol);
         await db.SaveChangesAsync();
-
-        return Ok();
+        return Ok(dbsol.Id);
     }
 
     [HttpPost("score")]

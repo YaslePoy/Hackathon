@@ -1,5 +1,6 @@
 @page "/user"
 @using Fluxor
+@using HackathonWeb.Components.Layout
 @rendermode InteractiveServer
 <Fluxor.Blazor.Web.StoreInitializer/>
 @inject IState<HackState> State
@@ -9,6 +10,9 @@
         width:60%;
     }
 </style>
+
+<UserBar></UserBar>
+
 @if (State.Value.User is not null)
 {
     @if (State.Value.User.Role == 1)

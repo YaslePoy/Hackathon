@@ -1,8 +1,9 @@
 @page "/hackathon/{HackathonId:int}/team/{TeamId:int}"
 @using System.Net.Http.Json
+@using HackathonApi.DTO
 @using HackathonApi.Models
 @inject HttpClient Http
-
+@rendermode InteractiveServer
 <h2>Информация о хакатоне</h2>
 @if (hackathon == null)
 {
@@ -15,8 +16,8 @@ else
             <h4 class="card-title">@hackathon.Name</h4>
             <h6 class="card-subtitle mb-2 text-muted">@hackathon.Description</h6>
             <p class="card-text">
-                <b>Дата начала:</b> @hackathon.Start.ToShortDateString()<br />
-                <b>Дата окончания:</b> @hackathon.End.ToShortDateString()<br />
+                <b>Дата начала:</b> @hackathon.Start.ToShortDateString()<br/>
+                <b>Дата окончания:</b> @hackathon.End.ToShortDateString()<br/>
                 <b>Организатор:</b>
                 @if (hackathon.Owner != null)
                 {
@@ -29,19 +30,51 @@ else
             </p>
         </div>
     </div>
+
+    <h3 class="mt-4">Задачи хакатона</h3>
+    @if (tasks == null)
+    {
+        <p>Загрузка задач...</p>
+    }
+    else if (tasks.Count == 0)
+    {
+        <p>Нет доступных задач.</p>
+    }
+    else
+    {
+        <ul class="list-group mb-3" style="max-width:600px;">
+            @foreach (var task in tasks)
+            {
+                <li class="list-group-item">
+                    <b>@task.Description</b>
+                    <textarea class="form-control mt-2 mb-2" @bind="taskAnswers[task.Id]"
+                              placeholder="Ваш ответ..."></textarea>
+                    <button class="btn btn-primary btn-sm" @onclick="() => SubmitSolution(task.Id)" disabled="@IsAfterEnd()">Сохранить ответ</button>
+                    @if (IsAfterEnd() || !string.IsNullOrEmpty(solutionError))
+                    {
+                        <span class="text-danger ms-2">@solutionError</span>
+                    }
+                    <span class="text-success ms-2">@GetSolutionStatus(task.Id)</span>
+                </li>
+            }
+        </ul>
+    }
 }
 
 @code {
-    [Parameter]
-    public int HackathonId { get; set; }
-    [Parameter]
-    public int TeamId { get; set; }
+    [Parameter] public int HackathonId { get; set; }
+    [Parameter] public int TeamId { get; set; }
 
     private Hackathon hackathon;
+    private List<HTask> tasks;
+    private Dictionary<int, string> taskAnswers = new();
+    private HashSet<int> savedSolutions = new();
+    private string solutionError;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadHackathon();
+        await LoadTasks();
     }
 
     private async Task LoadHackathon()
@@ -50,6 +83,68 @@ else
         {
             hackathon = await Http.GetFromJsonAsync<Hackathon>($"/api/hackathon/{HackathonId}");
         }
-        catch { hackathon = null; }
+        catch
+        {
+            hackathon = null;
+        }
     }
+
+    private async Task LoadTasks()
+    {
+        try
+        {
+            tasks = await Http.GetFromJsonAsync<List<HTask>>($"/api/hackathon/{HackathonId}/tasks");
+            foreach (var task in tasks)
+            {
+                string sol;
+                try
+                { sol = await Http.GetStringAsync($"/api/solution?taskId={task.Id}&teamId={TeamId}");
+                }
+                catch (Exception e)
+                {
+                    sol = "";
+                }
+                taskAnswers[task.Id] = sol;
+            }
+        }
+        catch
+        {
+            tasks = new List<HTask>();
+        }
+    }
+
+    private async Task SubmitSolution(int taskId)
+    {
+        solutionError = string.Empty;
+        if (IsAfterEnd())
+        {
+            solutionError = "Нельзя отправить ответ после окончания хакатона";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(taskAnswers[taskId]) || TeamId <= 0)
+            return;
+        var solution = new SolutionDTO { TaskId = taskId, TeamId = TeamId, Text = taskAnswers[taskId] };
+        var response = await Http.PostAsJsonAsync("/api/solution", solution);
+        if (response.IsSuccessStatusCode)
+        {
+            savedSolutions.Add(taskId);
+        }
+    }
+
+    private string GetSolutionStatus(int taskId)
+    {
+        return savedSolutions.Contains(taskId) ? "Ответ сохранён" : string.Empty;
+    }
+
+    private bool IsAfterEnd()
+    {
+        return hackathon != null && DateTime.Now > hackathon.End;
+    }
+
+    public class HTask
+    {
+        public int Id { get; set; }
+        public string Description { get; set; }
+    }
+
 } 

@@ -20,10 +20,11 @@ public class TaskApi(HckContext db) : Controller
     }
 
     [HttpPost]
-    public async Task<ActionResult> Create([FromBody] HTask api)
+    public async Task<ActionResult> Create([FromQuery] int hackathonId,[FromBody] string text)
     {
         try
         {
+            var api = new HTask() { Description = text, HackathonId = hackathonId };
             db.Tasks.Add(api);
             await db.SaveChangesAsync();
             return Ok(api.Id);

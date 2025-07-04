@@ -44,7 +44,7 @@ public class HackathonApi(HckContext db) : Controller
     [HttpPatch]
     public async Task<ActionResult> Update([FromBody] HackathonDTO hackathon)
     {
-        if (db.Hackathons.FirstOrDefaultAsync(i => i.Id == hackathon.Id) is { } hk)
+        if (await db.Hackathons.FirstOrDefaultAsync(i => i.Id == hackathon.Id) is { } hk)
         {
             Utils.TransferData(hk, hackathon);
             await db.SaveChangesAsync();
@@ -58,5 +58,11 @@ public class HackathonApi(HckContext db) : Controller
     public async Task<ActionResult<IReadOnlyList<Team>>> Teams(int id)
     {
         return Ok(await db.TeamCompetitions.Where(i => i.HackathonId == id).Select(i => i.Team).ToListAsync());
+    }
+
+    [HttpGet("{id}/tasks")]
+    public async Task<ActionResult<IReadOnlyList<HTask>>> Tasks(int id)
+    {
+        return Ok(await db.Tasks.Where(i => i.HackathonId == id).ToListAsync());
     }
 }

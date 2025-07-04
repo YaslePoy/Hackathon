@@ -9,7 +9,7 @@ public class HSolution : DbEntity
     public HTask Task { get; set; }
     [ForeignKey("Team")]
     public int TeamId { get; set; }
-    [ForeignKey("Tack")]
+    [ForeignKey("Task")]
     public int TaskId { get; set; }
     public string Comment { get; set; }
     public int Score { get; set; }
