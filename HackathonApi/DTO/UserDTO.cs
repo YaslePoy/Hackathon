@@ -25,3 +25,17 @@ public class TeamRequestDTO
     public string UserSurname { get; set; }
     public string UserEmail { get; set; }
 }
+
+public class HackathonRequestDTO
+{
+    public int Id { get; set; }
+    public string TeamName { get; set; }
+    public string TeamDescription { get; set; }
+}
+
+public class TeamDTO
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Description { get; set; }
+}

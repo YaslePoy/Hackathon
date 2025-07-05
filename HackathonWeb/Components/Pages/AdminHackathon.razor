@@ -46,6 +46,58 @@ else
     </div>
 }
 
+<h4>Запросы команд на участие</h4>
+@if (hackathonRequests == null)
+{
+    <p>Загрузка запросов...</p>
+}
+else if (hackathonRequests.Count == 0)
+{
+    <p>Нет запросов на участие.</p>
+}
+else
+{
+    <ul class="list-group mb-3" style="max-width:600px;">
+        @foreach (var request in hackathonRequests)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>@request.TeamName</strong><br />
+                    <small class="text-muted">@request.TeamDescription</small>
+                </div>
+                <button class="btn btn-success btn-sm" @onclick="() => AcceptTeamRequest(request.Id)">Принять</button>
+            </li>
+        }
+    </ul>
+}
+<p class="text-info">@requestResult</p>
+
+<h4>Команды, участвующие в хакатоне</h4>
+@if (participatingTeams == null)
+{
+    <p>Загрузка команд...</p>
+}
+else if (participatingTeams.Count == 0)
+{
+    <p>Нет участвующих команд.</p>
+}
+else
+{
+    <ul class="list-group mb-3" style="max-width:600px;">
+        @foreach (var team in participatingTeams)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>@team.Name</strong><br />
+                    <small class="text-muted">@team.Description</small>
+                </div>
+                <button class="btn btn-danger btn-sm" @onclick="() => RemoveTeamFromHackathon(team.Id)">Исключить</button>
+            </li>
+        }
+    </ul>
+}
+<p class="text-info">@teamResult</p>
+
 @code {
     [Parameter]
     public int HackathonId { get; set; }
@@ -55,11 +107,17 @@ else
     private DateTime? startDate;
     private DateTime? endDate;
     private string newTaskDescription;
+    private List<HackathonRequestDTO> hackathonRequests;
+    private string requestResult;
+    private List<TeamDTO> participatingTeams;
+    private string teamResult;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadHackathon();
         await LoadTasks();
+        await LoadHackathonRequests();
+        await LoadParticipatingTeams();
     }
 
     private async Task LoadHackathon()
@@ -138,5 +196,68 @@ else
     private void Back()
     {
         Nav.NavigateTo("/admin");
+    }
+
+    private async Task LoadHackathonRequests()
+    {
+        try
+        {
+            hackathonRequests = await Http.GetFromJsonAsync<List<HackathonRequestDTO>>($"/api/hackathon/{HackathonId}/requests");
+        }
+        catch { hackathonRequests = new List<HackathonRequestDTO>(); }
+    }
+
+    private async Task AcceptTeamRequest(int requestId)
+    {
+        requestResult = string.Empty;
+        var response = await Http.PostAsync($"/api/hackathon/request/accept?requestId={requestId}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            requestResult = "Команда принята в хакатон!";
+            await LoadHackathonRequests();
+            await LoadParticipatingTeams();
+        }
+        else
+        {
+            requestResult = $"Ошибка: {response.StatusCode}";
+        }
+    }
+
+    private async Task LoadParticipatingTeams()
+    {
+        try
+        {
+            participatingTeams = await Http.GetFromJsonAsync<List<TeamDTO>>($"/api/hackathon/{HackathonId}/participating-teams");
+        }
+        catch { participatingTeams = new List<TeamDTO>(); }
+    }
+
+    private async Task RemoveTeamFromHackathon(int teamId)
+    {
+        teamResult = string.Empty;
+        var response = await Http.DeleteAsync($"/api/hackathon/{HackathonId}/team/{teamId}");
+        if (response.IsSuccessStatusCode)
+        {
+            teamResult = "Команда исключена из хакатона!";
+            await LoadParticipatingTeams();
+        }
+        else
+        {
+            teamResult = $"Ошибка: {response.StatusCode}";
+        }
+    }
+
+    public class HackathonRequestDTO
+    {
+        public int Id { get; set; }
+        public string TeamName { get; set; }
+        public string TeamDescription { get; set; }
+    }
+
+    public class TeamDTO
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
     }
 } 

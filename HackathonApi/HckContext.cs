@@ -18,4 +18,5 @@ public class HckContext : DbContext
     public DbSet<Hackathon> Hackathons { get; set; }
     public DbSet<TeamRequest>  TeamRequests { get; set; }
     public DbSet<TeamCompetition>  TeamCompetitions { get; set; }
+    public DbSet<HackathonRequest>  HackathonRequests { get; set; }
 }

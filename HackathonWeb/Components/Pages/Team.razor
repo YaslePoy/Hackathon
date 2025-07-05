@@ -45,7 +45,7 @@ else
     </ul>
 }
 
-<h4>Зарегистрировать команду на хакатон</h4>
+<h4>Отправить запрос на участие в хакатоне</h4>
 @if (allHackathons == null)
 {
     <p>Загрузка...</p>
@@ -56,21 +56,26 @@ else
         @foreach (var hack in allHackathons)
         {
             bool alreadyRegistered = hackathons.Any(h => h.Id == hack.Id);
+            bool hasRequest = hackathonRequests.Any(r => r.HackathonId == hack.Id);
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <span>@hack.Name (@hack.Description)</span>
                 @if (alreadyRegistered)
                 {
                     <span class="badge bg-success">Уже участвует</span>
                 }
+                else if (hasRequest)
+                {
+                    <span class="badge bg-warning">Запрос отправлен</span>
+                }
                 else
                 {
-                    <button class="btn btn-sm btn-primary" @onclick="() => RegisterOnHackathon(hack.Id)">Зарегистрировать</button>
+                    <button class="btn btn-sm btn-primary" @onclick="() => SendHackathonRequest(hack.Id)">Отправить запрос</button>
                 }
             </li>
         }
     </ul>
 }
-<p class="text-info">@registerResult</p>
+<p class="text-info">@hackathonRequestResult</p>
 
 <h4>Запросы на вступление в команду</h4>
 @if (teamRequests == null)
@@ -105,12 +110,15 @@ else
     private string registerResult;
     private List<TeamRequest> teamRequests;
     private string requestResult;
+    private List<HackathonRequestDTO> hackathonRequests;
+    private string hackathonRequestResult;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadTeamInfo();
         await LoadAllHackathons();
         await LoadTeamRequests();
+        await LoadHackathonRequests();
     }
 
     private async Task LoadTeamInfo()
@@ -194,11 +202,63 @@ else
         }
     }
 
+    private async Task LoadHackathonRequests()
+    {
+        try
+        {
+            // Загружаем запросы команды на участие в хакатонах
+            hackathonRequests = new List<HackathonRequestDTO>();
+            foreach (var hack in allHackathons ?? new List<Hackathon>())
+            {
+                try
+                {
+                    var requests = await Http.GetFromJsonAsync<List<HackathonRequestDTO>>($"/api/hackathon/{hack.Id}/requests");
+                    var teamRequest = requests?.FirstOrDefault(r => r.TeamId == TeamId);
+                    if (teamRequest != null)
+                    {
+                        teamRequest.HackathonId = hack.Id;
+                        hackathonRequests.Add(teamRequest);
+                    }
+                }
+                catch { /* Игнорируем ошибки */ }
+            }
+        }
+        catch { hackathonRequests = new List<HackathonRequestDTO>(); }
+    }
+
+    private async Task SendHackathonRequest(int hackathonId)
+    {
+        hackathonRequestResult = string.Empty;
+        var response = await Http.PostAsync($"/api/hackathon/request?teamId={TeamId}&hackathonId={hackathonId}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            hackathonRequestResult = "Запрос на участие отправлен!";
+            await LoadHackathonRequests();
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            hackathonRequestResult = "Команда уже участвует в этом хакатоне.";
+        }
+        else
+        {
+            hackathonRequestResult = $"Ошибка: {response.StatusCode}";
+        }
+    }
+
     public class TeamRequest
     {
         public int Id { get; set; }
         public string UserName { get; set; }
         public string UserSurname { get; set; }
         public string UserEmail { get; set; }
+    }
+
+    public class HackathonRequestDTO
+    {
+        public int Id { get; set; }
+        public string TeamName { get; set; }
+        public string TeamDescription { get; set; }
+        public int TeamId { get; set; }
+        public int HackathonId { get; set; }
     }
 } 
