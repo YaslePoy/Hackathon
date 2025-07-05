@@ -39,3 +39,13 @@ public class TeamDTO
     public string Name { get; set; }
     public string Description { get; set; }
 }
+
+public class SolutionCommentDTO
+{
+    public int Id { get; set; }
+    public int SolutionId { get; set; }
+    public int JuryId { get; set; }
+    public string Comment { get; set; }
+    public int Score { get; set; }
+    public string? JuryName { get; set; }
+}
