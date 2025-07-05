@@ -20,7 +20,7 @@ public class HckContext : DbContext
     public DbSet<TeamCompetition>  TeamCompetitions { get; set; }
     public DbSet<HackathonRequest>  HackathonRequests { get; set; }
     public DbSet<SolutionComment>  SolutionComments { get; set; }
-
+    public DbSet<ChatLine>  Chat { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

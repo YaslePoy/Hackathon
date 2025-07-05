@@ -1,4 +1,5 @@
 using HackathonApi;
+using HackathonApi.Controllers;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<HckContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DBConnection")));
+builder.Services.AddTransient<IChatService, ChatService>();
+builder.Services.AddSignalR();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy",
@@ -31,6 +35,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthorization();
 app.UseCors("CorsPolicy");
+app.MapHub<ChatHub>("/chat");
 
 app.MapControllers();
 app.UseSwagger();

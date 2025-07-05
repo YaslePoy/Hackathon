@@ -1,0 +1,102 @@
+@using Fluxor
+@using Microsoft.AspNetCore.SignalR.Client
+@rendermode InteractiveServer
+@inject IState<HackState> State
+
+@if (State.Value.User is not null)
+{
+    <h3>Чат</h3>
+
+    <div style="height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;" class="form-group">
+        @foreach (var message in messages)
+        {
+            <div>
+                @if (message.UserId == State.Value.User.Id)
+                {
+                    <strong>@message.User.Name:</strong>
+                }
+                else
+                {
+                    List<int> ids = [State.Value.User.Id, message.UserId];
+                    ids.Sort();
+                    var lsLink = $"http://localhost:5134/ls/{ids[0]}_{ids[1]}";
+
+                    <a href=@lsLink>@message.User.Name:</a>
+                }
+
+                @if (State.Value.User.Role == 3)
+                {
+                    <button style="margin-left: 16px; margin-right: 16px; margin-top: 8px" class="btn btn-primary"
+                            @onclick="async () => await DeleteMessage(message.Id)">Удалить сообщение
+                    </button>
+                }
+
+                @message.Text
+
+            </div>
+        }
+    </div>
+
+    <input class="form-control" type="text" @bind="newMessageText" placeholder="Введите сообщение..."/>
+    <button class="btn btn-primary" @onclick="PostMessage">Отправить</button>
+}
+
+@code {
+
+    [Parameter] public string Key { get; set; } = "";
+
+    private HubConnection _hub;
+    private List<ChatLine> messages = new List<ChatLine>();
+    private string newMessageText = string.Empty;
+
+    [Inject] public HttpClient Http { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hub = new HubConnectionBuilder().WithUrl("http://localhost:5185/chat").Build();
+        await _hub.StartAsync();
+        await _hub.InvokeAsync("Register", Key);
+        _hub.On<ChatLine>("NewLine", line =>
+        {
+            messages.Add(line);
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On("Update", async () =>
+        {
+            messages = await Http.GetFromJsonAsync<List<ChatLine>>($"api/chat/{Key}");
+            await InvokeAsync(StateHasChanged);
+        });
+        messages = await Http.GetFromJsonAsync<List<ChatLine>>($"api/chat/{Key}");
+        StateHasChanged();
+    }
+
+    private void PostMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(newMessageText))
+        {
+            var newMessage = new ChatLine
+            {
+                Key = Key,
+                UserId = State.Value.User.Id,
+                Text = newMessageText
+            };
+
+            _hub.InvokeAsync("PostMessage", newMessage);
+
+            newMessageText = string.Empty;
+        }
+    }
+
+    private async Task DeleteMessage(int lineId)
+    {
+        await _hub.InvokeAsync("DeleteLine", lineId);
+    }
+
+    private void AddLine(ChatLine line)
+    {
+        messages.Add(line);
+        StateHasChanged();
+    }
+
+}
