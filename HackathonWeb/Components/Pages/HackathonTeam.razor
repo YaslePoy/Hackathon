@@ -2,69 +2,81 @@
 @using System.Net.Http.Json
 @using HackathonApi.DTO
 @using HackathonApi.Models
+@using HackathonWeb.Components.Layout
 @inject HttpClient Http
 @rendermode InteractiveServer
-<h2>Информация о хакатоне</h2>
-@if (hackathon == null)
-{
-    <p>Загрузка...</p>
-}
-else
-{
-    <div class="card" style="max-width:600px;">
-        <div class="card-body">
-            <h4 class="card-title">@hackathon.Name</h4>
-            <h6 class="card-subtitle mb-2 text-muted">@hackathon.Description</h6>
-            <p class="card-text">
-                <b>Дата начала:</b> @hackathon.Start.ToShortDateString()<br/>
-                <b>Дата окончания:</b> @hackathon.End.ToShortDateString()<br/>
-                <b>Организатор:</b>
-                @if (hackathon.Owner != null)
-                {
-                    <span>@hackathon.Owner.Name @hackathon.Owner.Surname (@hackathon.Owner.Email)</span>
-                }
-                else
-                {
-                    <span>Неизвестно</span>
-                }
-            </p>
-        </div>
+
+<div style="display: flex; gap: 20px;">
+    <div style="flex: 1;">
+        <h2>Информация о хакатоне</h2>
+        @if (hackathon == null)
+        {
+            <p>Загрузка...</p>
+        }
+        else
+        {
+            <div class="card" style="max-width:600px;">
+                <div class="card-body">
+                    <h4 class="card-title">@hackathon.Name</h4>
+                    <h6 class="card-subtitle mb-2 text-muted">@hackathon.Description</h6>
+                    <p class="card-text">
+                        <b>Дата начала:</b> @hackathon.Start.ToShortDateString()<br/>
+                        <b>Дата окончания:</b> @hackathon.End.ToShortDateString()<br/>
+                        <b>Организатор:</b>
+                        @if (hackathon.Owner != null)
+                        {
+                            <span>@hackathon.Owner.Name @hackathon.Owner.Surname (@hackathon.Owner.Email)</span>
+                        }
+                        else
+                        {
+                            <span>Неизвестно</span>
+                        }
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="mt-4">Задачи хакатона</h3>
+            @if (tasks == null)
+            {
+                <p>Загрузка задач...</p>
+            }
+            else if (tasks.Count == 0)
+            {
+                <p>Нет доступных задач.</p>
+            }
+            else
+            {
+                <ul class="list-group mb-3" style="max-width:600px;">
+                    @foreach (var task in tasks)
+                    {
+                        <li class="list-group-item">
+                            <b>@task.Description</b>
+                            <textarea class="form-control mt-2 mb-2" @bind="taskAnswers[task.Id]"
+                                      placeholder="Ваш ответ..."></textarea>
+                            <button class="btn btn-primary btn-sm" @onclick="() => SubmitSolution(task.Id)"
+                                    disabled="@IsAfterEnd()">Сохранить ответ
+                            </button>
+                            @if (IsAfterEnd() || !string.IsNullOrEmpty(solutionError))
+                            {
+                                <span class="text-danger ms-2">@solutionError</span>
+                            }
+                            <span class="text-success ms-2">@GetSolutionStatus(task.Id)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        }
     </div>
 
-    <h3 class="mt-4">Задачи хакатона</h3>
-    @if (tasks == null)
-    {
-        <p>Загрузка задач...</p>
-    }
-    else if (tasks.Count == 0)
-    {
-        <p>Нет доступных задач.</p>
-    }
-    else
-    {
-        <ul class="list-group mb-3" style="max-width:600px;">
-            @foreach (var task in tasks)
-            {
-                <li class="list-group-item">
-                    <b>@task.Description</b>
-                    <textarea class="form-control mt-2 mb-2" @bind="taskAnswers[task.Id]"
-                              placeholder="Ваш ответ..."></textarea>
-                    <button class="btn btn-primary btn-sm" @onclick="() => SubmitSolution(task.Id)" disabled="@IsAfterEnd()">Сохранить ответ</button>
-                    @if (IsAfterEnd() || !string.IsNullOrEmpty(solutionError))
-                    {
-                        <span class="text-danger ms-2">@solutionError</span>
-                    }
-                    <span class="text-success ms-2">@GetSolutionStatus(task.Id)</span>
-                </li>
-            }
-        </ul>
-    }
-}
+    <div style="width: 400px;">
+        <ChatView Key="@chatKey"/>
+    </div>
+</div>
 
 @code {
     [Parameter] public int HackathonId { get; set; }
     [Parameter] public int TeamId { get; set; }
-
+    public string chatKey => $"hack_tm_{TeamId}_{HackathonId}";
     private Hackathon hackathon;
     private List<HTask> tasks;
     private Dictionary<int, string> taskAnswers = new();
@@ -98,12 +110,14 @@ else
             {
                 string sol;
                 try
-                { sol = await Http.GetStringAsync($"/api/solution?taskId={task.Id}&teamId={TeamId}");
+                {
+                    sol = await Http.GetStringAsync($"/api/solution?taskId={task.Id}&teamId={TeamId}");
                 }
                 catch (Exception e)
                 {
                     sol = "";
                 }
+
                 taskAnswers[task.Id] = sol;
             }
         }
@@ -121,6 +135,7 @@ else
             solutionError = "Нельзя отправить ответ после окончания хакатона";
             return;
         }
+
         if (string.IsNullOrWhiteSpace(taskAnswers[taskId]) || TeamId <= 0)
             return;
         var solution = new SolutionDTO { TaskId = taskId, TeamId = TeamId, Text = taskAnswers[taskId] };

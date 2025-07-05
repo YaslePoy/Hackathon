@@ -11,18 +11,8 @@
         @foreach (var message in messages)
         {
             <div>
-                @if (message.UserId == State.Value.User.Id)
-                {
+                
                     <strong>@message.User.Name:</strong>
-                }
-                else
-                {
-                    List<int> ids = [State.Value.User.Id, message.UserId];
-                    ids.Sort();
-                    var lsLink = $"http://localhost:5134/ls/{ids[0]}_{ids[1]}";
-
-                    <a href=@lsLink>@message.User.Name:</a>
-                }
 
                 @if (State.Value.User.Role == 3)
                 {
@@ -51,9 +41,12 @@
 
     [Inject] public HttpClient Http { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        _hub = new HubConnectionBuilder().WithUrl("http://localhost:5185/chat").Build();
+    protected override async Task OnAfterRenderAsync(bool firstRender){
+        
+        base.OnAfterRenderAsync(firstRender);
+        if (!firstRender)
+            return;
+        _hub = new HubConnectionBuilder().WithUrl("http://localhost:5154/chat").Build();
         await _hub.StartAsync();
         await _hub.InvokeAsync("Register", Key);
         _hub.On<ChatLine>("NewLine", line =>

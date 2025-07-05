@@ -36,6 +36,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 app.UseCors("CorsPolicy");
 app.MapHub<ChatHub>("/chat");
+ChatHub.ServiceProvider = builder.Services.BuildServiceProvider();
 
 app.MapControllers();
 app.UseSwagger();
