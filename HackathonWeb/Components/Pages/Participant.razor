@@ -140,7 +140,7 @@ else
         }
 
         var team = new Team { Name = newTeamName, Description = newTeamDescription };
-        var response = await Http.PostAsJsonAsync("/api/team", team);
+        var response = await Http.PostAsJsonAsync($"/api/team?userId={user.Id}", team);
         if (response.IsSuccessStatusCode)
         {
             createTeamResult = "Команда создана!";

@@ -1,5 +1,62 @@
 @page "/jury"
+@using System.Net.Http.Json
+@using HackathonApi.Models
+@using HackathonWeb.Components.Layout
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<UserBar></UserBar>
+<h2>Жюри - Выбор хакатона для оценки</h2>
+
+<h4>Выберите хакатон для оценки</h4>
+@if (hackathons == null)
+{
+    <p>Загрузка...</p>
+}
+else if (hackathons.Count == 0)
+{
+    <p>Нет доступных хакатонов.</p>
+}
+else
+{
+    <div class="form-group mb-3" style="max-width:600px;">
+        <select class="form-select" @onchange="OnHackathonSelected">
+            <option value="">Выберите хакатон...</option>
+            @foreach (var hack in hackathons)
+            {
+                <option value="@hack.Id">@hack.Name (@hack.Start.ToShortDateString() - @hack.End.ToShortDateString())</option>
+            }
+        </select>
+        <button class="btn btn-primary mt-2" @onclick="GoToEvaluation" disabled="@(selectedHackathonId == 0)">Оценить хакатон</button>
+    </div>
+}
 
 @code {
-    // Здесь будет логика для жюри
+    private List<Hackathon> hackathons;
+    private int selectedHackathonId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHackathons();
+    }
+
+    private async Task LoadHackathons()
+    {
+        try
+        {
+            hackathons = await Http.GetFromJsonAsync<List<Hackathon>>("/api/hackathon/all");
+        }
+        catch { hackathons = new List<Hackathon>(); }
+    }
+
+    private void OnHackathonSelected(ChangeEventArgs e)
+    {
+        int.TryParse(e.Value?.ToString(), out selectedHackathonId);
+    }
+
+    private void GoToEvaluation()
+    {
+        if (selectedHackathonId > 0)
+            Nav.NavigateTo($"/jury/evaluation/{selectedHackathonId}");
+    }
 } 

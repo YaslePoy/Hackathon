@@ -72,6 +72,29 @@ else
 }
 <p class="text-info">@registerResult</p>
 
+<h4>Запросы на вступление в команду</h4>
+@if (teamRequests == null)
+{
+    <p>Загрузка запросов...</p>
+}
+else if (teamRequests.Count == 0)
+{
+    <p>Нет запросов на вступление.</p>
+}
+else
+{
+    <ul class="list-group mb-3" style="max-width:400px;">
+        @foreach (var request in teamRequests)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@request.UserName @request.UserSurname (@request.UserEmail)</span>
+                <button class="btn btn-success btn-sm" @onclick="() => AcceptRequest(request.Id)">Принять</button>
+            </li>
+        }
+    </ul>
+}
+<p class="text-info">@requestResult</p>
+
 @code {
     [Parameter]
     public int TeamId { get; set; }
@@ -80,11 +103,14 @@ else
     private List<Hackathon> hackathons;
     private List<Hackathon> allHackathons;
     private string registerResult;
+    private List<TeamRequest> teamRequests;
+    private string requestResult;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadTeamInfo();
         await LoadAllHackathons();
+        await LoadTeamRequests();
     }
 
     private async Task LoadTeamInfo()
@@ -141,5 +167,38 @@ else
     private void GoToHackathon(int hackathonId)
     {
         Nav.NavigateTo($"/hackathon/{hackathonId}/team/{TeamId}");
+    }
+
+    private async Task LoadTeamRequests()
+    {
+        try
+        {
+            teamRequests = await Http.GetFromJsonAsync<List<TeamRequest>>($"/api/team/{TeamId}/requests");
+        }
+        catch { teamRequests = new List<TeamRequest>(); }
+    }
+
+    private async Task AcceptRequest(int requestId)
+    {
+        requestResult = string.Empty;
+        var response = await Http.PostAsync($"/api/team/request/accept?requestId={requestId}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            requestResult = "Запрос принят!";
+            await LoadTeamRequests();
+            await LoadTeamInfo(); // Обновляем список участников
+        }
+        else
+        {
+            requestResult = $"Ошибка: {response.StatusCode}";
+        }
+    }
+
+    public class TeamRequest
+    {
+        public int Id { get; set; }
+        public string UserName { get; set; }
+        public string UserSurname { get; set; }
+        public string UserEmail { get; set; }
     }
 } 

@@ -15,14 +15,16 @@ public class TeamApi(HckContext db) : Controller
         return await db.Teams.ToListAsync();
     }
     [HttpPost]
-    public async Task<ActionResult> CreateTeam([FromBody] Team team)
+    public async Task<ActionResult> CreateTeam([FromBody] Team team, [FromQuery]int userId)
     {
         if (await db.Teams.AnyAsync(i => i.Name == team.Name))
         {
             return Conflict();
         }
-
+        
         db.Add(team);
+        await db.SaveChangesAsync();
+        db.Add(new TeamMember { TeamId = team.Id, UserId = userId });
         await db.SaveChangesAsync();
         return Ok(team.Id);
     }
@@ -63,6 +65,12 @@ public class TeamApi(HckContext db) : Controller
         if (!await db.Teams.AnyAsync(i => i.Id == teamId))
             return NotFound();
 
+
+        if (db.TeamMembers.Count(i => i.TeamId == teamId) == 5)
+        {
+            return Conflict();
+        }
+        
         var req = new TeamRequest { TeamId = teamId, UserId = userId }; 
         db.TeamRequests.Add(req);
         await db.SaveChangesAsync();
@@ -92,5 +100,26 @@ public class TeamApi(HckContext db) : Controller
         db.TeamCompetitions.Add(new TeamCompetition { TeamId = teamId,  HackathonId = hackathonId });
         await db.SaveChangesAsync();
         return Ok();
+    }
+
+    [HttpGet("{teamId}/requests")]
+    public async Task<ActionResult<IReadOnlyList<TeamRequestDTO>>> GetTeamRequests(int teamId)
+    {
+        if (!await db.Teams.AnyAsync(i => i.Id == teamId))
+            return NotFound();
+        
+        var requests = await db.TeamRequests
+            .Where(r => r.TeamId == teamId)
+            .Include(r => r.User)
+            .Select(r => new TeamRequestDTO
+            {
+                Id = r.Id,
+                UserName = r.User.Name,
+                UserSurname = r.User.Surname,
+                UserEmail = r.User.Email
+            })
+            .ToListAsync();
+        
+        return Ok(requests);
     }
 }
